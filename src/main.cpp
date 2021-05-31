@@ -4,66 +4,29 @@
  *
  **********************************/
 
-#include <LiquidCrystal_I2C.h>
-#include <LiquidMenu.h>
-#include <Arduino.h>
-#include <Encoder.h>
-#include "OneButton.h"
 
-// Setup  button 
-OneButton button(A1, true);
+#include <Arduino.h>
+#include <encoder_conf.h>
+#include <menu_conf.h>
 
 // LCD I2C
-LiquidCrystal_I2C lcd(0x3F, 16, 2);
 
-//ENCODER
-//#define outputA 6
-//#define outputB 7
-#define sw 4
-
-Encoder myEnc(2, 3);
-
-long posicion =0;
-long oldPosition  = 64000;
-
-int aState;
-int aLastState;  
-
+unsigned int cantidadGiros = 25;
 
 //LEDS
 #define led1 8
 #define led2 9
 #define led3 10
 
-long position(){
-  long newPosition = myEnc.read()/4;
-  /*if (newPosition != oldPosition) {
-    oldPosition = newPosition;
-  }*/
-  return newPosition;
-}
 
 
 int led_seleccionado = 0;
 
-LiquidLine linea1(1, 0, "Led 1");
-LiquidLine linea2(1, 1, "Led 2");
-LiquidLine linea3(1, 0, "Led 3");
-LiquidLine linea4(1, 1, "Todos");
-LiquidScreen pantalla1(linea1,linea2,linea3,linea4);
-
-LiquidLine linea1_2(1, 0, "ON");
-LiquidLine linea2_2(1, 1, "OFF");
-LiquidLine linea3_2(1, 0, "Atras");
-LiquidScreen pantalla2(linea1_2,linea2_2,linea3_2);
-
-LiquidMenu menu(lcd,pantalla1,pantalla2);
-
 //Funciones:::::
 void selectOption(){
   if(digitalRead(sw) == LOW){
-      //menu.call_function(1);
-      Serial.println(menu.call_function(1));
+      menu.call_function(1);
+      //Serial.println(menu.call_function(1));
       delay(500);
 
   }
@@ -76,7 +39,7 @@ void fn_led1(){
 }
 
 void fn_led2(){
-  menu.change_screen(2);
+  menu.change_screen(3);
   menu.set_focusedLine(0);
   led_seleccionado = 2;
 }
@@ -90,11 +53,10 @@ void fn_led3(){
 
 
 void fn_todos(){
-  menu.change_screen(2);
+  menu.change_screen(3);
   menu.set_focusedLine(0);
   led_seleccionado = 0;
 }
-
 
 
 void fn_on(){
@@ -138,15 +100,66 @@ void fn_off(){
   }
 }
 
+
+
+
+void cambiarValor() {
+
+  int valor = posicion;
+  int variable = 25;
+  
+  lcd.setCursor (13, 0); lcd.print(variable);
+  lcd.setCursor (0, 0); lcd.print(" ");
+  lcd.setCursor (12, 0); lcd.write((uint8_t)14);
+
+  while (1){
+
+    button1.tick();
+
+    posicion = position();
+
+    if (posicion > oldPosition) {
+        variable++;
+        lcd.setCursor (13, 0);
+        lcd.print(variable);
+      } else if (posicion < oldPosition) {
+        variable--;
+        lcd.setCursor (13, 0);
+        lcd.print(variable);
+      }
+      oldPosition=posicion;
+      //Serial.println(String (variable) +"  "+ String(posicion));
+
+      if (estadoSalida == true){
+        break;
+      }
+
+      
+  }
+  estadoSalida = false;
+  myEnc.write(valor);
+  posicion = valor;
+  oldPosition= valor;
+  menu.update();
+
+}
+
+
+
+
 void fn_atras(){
   menu.change_screen(1);
   menu.set_focusedLine(0);
 }
 
 
+
 void setup() {
 
   myEnc.write(oldPosition);
+
+  button1.attachClick(click1);
+  button1.attachLongPressStart(longPressStart1);
 
   Serial.begin(9600);
 
@@ -172,23 +185,36 @@ void setup() {
   linea2.attach_function(1, fn_led2);
   linea3.attach_function(1, fn_led3);
   linea4.attach_function(1, fn_todos);
-  
-  menu.add_screen(pantalla1);
-  
 
-  
-  linea1_2.set_focusPosition(Position::LEFT); 
-  linea2_2.set_focusPosition(Position::LEFT); 
-  linea3_2.set_focusPosition(Position::LEFT); 
-  
-  linea1_2.attach_function(1, fn_on); 
+  menu.add_screen(pantalla1);
+
+
+
+  linea1_2.set_focusPosition(Position::LEFT);
+  linea2_2.set_focusPosition(Position::LEFT);
+  linea3_2.set_focusPosition(Position::LEFT);
+
+  linea1_2.attach_function(1, fn_on);
   linea2_2.attach_function(1, fn_off);
   linea3_2.attach_function(1, fn_atras);
-   
+
   menu.add_screen(pantalla2);
+
+  linea1_3.set_focusPosition(Position::LEFT);
+  linea2_3.set_focusPosition(Position::LEFT);
+  linea3_3.set_focusPosition(Position::LEFT);
+  linea4_3.set_focusPosition(Position::LEFT);
+
+  linea1_3.attach_function(1, cambiarValor);
+  linea2_3.attach_function(1, fn_on);
+  linea3_3.attach_function(1, fn_atras);
+
+  menu.add_screen(pantalla3);
+
 
   pantalla1.set_displayLineCount(2);
   pantalla2.set_displayLineCount(2);
+  pantalla3.set_displayLineCount(2);
 
   menu.set_focusedLine(0);
 
@@ -198,14 +224,15 @@ void setup() {
 
 void loop() {
 
+  button1.tick();
   selectOption();
 
- //aState = digitalRead(outputA); 
+ //aState = digitalRead(outputA);
   posicion = position();
   //Serial.println(posicion);
-  
-    if (posicion != oldPosition){     
-      if (posicion > oldPosition) { 
+
+    if (posicion != oldPosition){
+      if (posicion > oldPosition) {
         menu.switch_focus(false);
       } else if (posicion < oldPosition) {
         menu.switch_focus(true);
@@ -214,6 +241,8 @@ void loop() {
       oldPosition = posicion;
   }
  // Serial.print(aState);*/
+
+ //delay(10);
 
 }
 
