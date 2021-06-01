@@ -8,6 +8,7 @@
 #include <Arduino.h>
 #include <encoder_conf.h>
 #include <menu_conf.h>
+#include <control.h>
 
 // LCD I2C
 
@@ -19,7 +20,8 @@ unsigned int cantidadGiros = 25;
 #define led3 10
 
 
-
+int variable = 25;
+int cont = 0;
 int led_seleccionado = 0;
 
 //Funciones:::::
@@ -106,7 +108,7 @@ void fn_off(){
 void cambiarValor() {
 
   int valor = posicion;
-  int variable = 25;
+  
   
   lcd.setCursor (13, 0); lcd.print(variable);
   lcd.setCursor (0, 0); lcd.print(" ");
@@ -144,6 +146,55 @@ void cambiarValor() {
 
 }
 
+void automatico() {
+
+  cont = 0;
+
+  lcd.setCursor (0, 0); lcd.print("");
+  lcd.setCursor (14, 0); lcd.write(3);
+  lcd.setCursor (12, 0); lcd.write((uint8_t)14);
+
+  lcd.setCursor (9, 1); lcd.print("T"); lcd.print(variable);
+  lcd.setCursor (13, 1); lcd.print(cont);
+  digitalWrite(10,1);
+  while (1){
+
+    button1.tick();
+    if (falling(7) == true){
+      cont++;
+      lcd.setCursor (13, 1); lcd.print(cont);
+    }
+
+    if (estadoSalida == true || cont >= variable){
+      digitalWrite(10,0);
+      break;
+    }
+  }
+  estadoSalida = false;
+  menu.update();
+}
+
+void manual() {
+
+  cont = 0;
+
+  lcd.setCursor (0, 1); lcd.print(" ");
+  lcd.setCursor (14, 1); lcd.write(3);
+  lcd.setCursor (12, 1); lcd.write((uint8_t)14);
+
+  digitalWrite(10,1);
+  while (1){
+
+    button1.tick();
+    if (estadoSalida == true ){
+      digitalWrite(10,0);
+      break;
+    }
+  }
+  estadoSalida = false;
+  menu.update();
+}
+
 
 
 
@@ -172,6 +223,7 @@ void setup() {
   lcd.init();
   //lcd.begin();
   lcd.backlight();
+  lcd.createChar(3, check);
   
 
   menu.init();
@@ -181,10 +233,10 @@ void setup() {
   linea3.set_focusPosition(Position::LEFT); 
   linea4.set_focusPosition(Position::LEFT); 
    
-  linea1.attach_function(1, fn_led1); 
-  linea2.attach_function(1, fn_led2);
+  linea1.attach_function(1, automatico); 
+  linea2.attach_function(1, manual);
   linea3.attach_function(1, fn_led3);
-  linea4.attach_function(1, fn_todos);
+  linea4.attach_function(1, cambiarValor);
 
   menu.add_screen(pantalla1);
 

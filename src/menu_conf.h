@@ -1,6 +1,9 @@
 #include <LiquidCrystal_I2C.h>
 #include <LiquidMenu.h>
 
+uint8_t check[8] = {0x0,0x1,0x3,0x16,0x1c,0x8,0x0};
+
+
 LiquidCrystal_I2C lcd(0x3F, 16, 2);
 
 LiquidLine linea1(1, 0, "Automatico");
